@@ -4,13 +4,23 @@ import (
 	"bytes"
 	"compress/bzip2"
 	"fmt"
-	mahjong "github.com/hphphp123312/mahjong-datapreprocess/mahjong_class"
+	"github.com/hphphp123312/mahjong-datapreprocess/mahjong"
+	"github.com/hphphp123321/go-common"
 	"regexp"
 	"strconv"
 	"strings"
 )
 
-func ProcessGame(content []byte) (retBoardStates []*mahjong.BoardState, dan []int) {
+func DecompressBzipBytes(content []byte) string {
+	bz2Reader := bzip2.NewReader(bytes.NewReader(content))
+	logBytes := make([]byte, 1024*100)
+	_, err := bz2Reader.Read(logBytes)
+	ErrPanic(err)
+	logBytes = bytes.Trim(logBytes, "\x00")
+	return string(logBytes)
+}
+
+func ProcessGame(logs string) (retBoardStates []*mahjong.BoardState, dan []int) {
 	retBoardStates = []*mahjong.BoardState{}
 	defer func() {
 		if err := recover(); err != nil { // 如果recover返回为空，说明没报错
@@ -18,12 +28,7 @@ func ProcessGame(content []byte) (retBoardStates []*mahjong.BoardState, dan []in
 			retBoardStates = []*mahjong.BoardState{}
 		}
 	}()
-	bz2Reader := bzip2.NewReader(bytes.NewReader(content))
-	logBytes := make([]byte, 1024*100)
-	_, err := bz2Reader.Read(logBytes)
-	ErrPanic(err)
-	logBytes = bytes.Trim(logBytes, "\x00")
-	logs := string(logBytes)
+
 	allInfo := compileInitInfo(logs)
 	gameInfo := allInfo[0]
 	gameType, startOya, dan := compileGameInfo(gameInfo)
@@ -75,10 +80,9 @@ func ProcessGame(content []byte) (retBoardStates []*mahjong.BoardState, dan []in
 			opType := compileOpType(op)
 			var player *mahjong.MahjongPlayer
 
-			if mahjong.Contain(opType, getTileMap) {
+			if playerIdx, ok := getTileMap[opType]; ok {
 				// Get Tile Stage
 
-				playerIdx := getTileMap[opType]
 				player = playerSlices[playerIdx]
 				playerWinds = append(playerWinds, player.Wind)
 				tileID := compileOpTile(op)
@@ -88,7 +92,7 @@ func ProcessGame(content []byte) (retBoardStates []*mahjong.BoardState, dan []in
 				validActionsSlices = append(validActionsSlices, validActions)
 				if i != 0 && len(rSlice) != 0 {
 					for j := len(rSlice) - 1; rSlice[j].RealActionIdx == -1; j-- {
-						realCall := mahjong.Call{
+						realCall := &mahjong.Call{
 							CallType:         mahjong.Skip,
 							CallTiles:        mahjong.Tiles{-1, -1, -1, -1},
 							CallTilesFromWho: []int{-1, -1, -1, -1},
@@ -99,10 +103,9 @@ func ProcessGame(content []byte) (retBoardStates []*mahjong.BoardState, dan []in
 						}
 					}
 				}
-			} else if mahjong.Contain(opType, discardTileMap) {
+			} else if playerIdx, ok := discardTileMap[opType]; ok {
 				// Discard Tile Stage
 
-				playerIdx := discardTileMap[opType]
 				player = playerSlices[playerIdx]
 				tileID := compileOpTile(op)
 				game.DiscardTileProcess(player, tileID)
@@ -115,14 +118,14 @@ func ProcessGame(content []byte) (retBoardStates []*mahjong.BoardState, dan []in
 				}
 				for j := len(rSlice) - 1; rSlice[j].RealActionIdx == -1; j-- {
 					if player.RiichiStep == 1 {
-						realCall := mahjong.Call{
+						realCall := &mahjong.Call{
 							CallType:         mahjong.Riichi,
 							CallTiles:        mahjong.Tiles{tileID, -1, -1, -1},
 							CallTilesFromWho: []int{player.Wind, -1, -1, -1},
 						}
 						rSlice[j].RealActionIdx = rSlice[j].ValidActions.Index(realCall)
 					} else {
-						realCall := mahjong.Call{
+						realCall := &mahjong.Call{
 							CallType:         mahjong.Discard,
 							CallTiles:        mahjong.Tiles{tileID, -1, -1, -1},
 							CallTilesFromWho: []int{player.Wind, -1, -1, -1},
@@ -143,12 +146,12 @@ func ProcessGame(content []byte) (retBoardStates []*mahjong.BoardState, dan []in
 				playerWinds = append(playerWinds, player.Wind)
 				meldBytes := compileMeld(op)
 				meldCall := ProcessMeld(meldBytes, player.Wind)
-				if mahjong.Contain(meldCall.CallType, []mahjong.CallType{mahjong.AnKan, mahjong.ShouMinKan}) {
+				if common.SliceContain([]mahjong.CallType{mahjong.AnKan, mahjong.ShouMinKan}, meldCall.CallType) {
 					game.ProcessSelfCall(player, meldCall)
 				} else {
 					game.ProcessOtherCall(player, meldCall)
 				}
-				if mahjong.Contain(meldCall.CallType, []mahjong.CallType{mahjong.AnKan, mahjong.ShouMinKan, mahjong.DaiMinKan}) {
+				if common.SliceContain([]mahjong.CallType{mahjong.AnKan, mahjong.ShouMinKan, mahjong.DaiMinKan}, meldCall.CallType) {
 					playerWinds = []int{}
 					player.ShantenNum = player.GetShantenNum()
 				}
@@ -183,7 +186,7 @@ func ProcessGame(content []byte) (retBoardStates []*mahjong.BoardState, dan []in
 
 				// DORA after kan
 				tileID := compileOpTile(op)
-				doraIndicators = append(doraIndicators, tileID)
+				doraIndicators.Append(tileID)
 			}
 
 			if len(playerWinds) == 0 {
@@ -203,7 +206,7 @@ func ProcessGame(content []byte) (retBoardStates []*mahjong.BoardState, dan []in
 				boardStateCopy.HandTiles = game.PosPlayer[w].HandTiles.Copy()
 				boardStateCopy.PlayerWind = w
 				boardStateCopy.Position = player.Wind
-				boardStateCopy.ValidActions = validActionsSlices[k][:]
+				boardStateCopy.ValidActions = validActionsSlices[k].Copy()
 				boardStateCopy.RealActionIdx = -1
 				boardStateCopy.NumRemainTiles = game.Tiles.NumRemainTiles
 				rSlice = append(rSlice, boardStateCopy)

@@ -1,4 +1,4 @@
-package shanten_test
+package test
 
 import (
 	"fmt"
@@ -8,7 +8,7 @@ import (
 	"github.com/dnovikoff/tempai-core/hand/tempai"
 	"github.com/dnovikoff/tempai-core/tile"
 	"github.com/dnovikoff/tempai-core/yaku"
-	mahjong "github.com/hphphp123312/mahjong-datapreprocess/mahjong_class"
+	"github.com/hphphp123312/mahjong-datapreprocess/mahjong"
 )
 
 func ExampleCalculate() {

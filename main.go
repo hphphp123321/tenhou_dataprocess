@@ -5,13 +5,13 @@ import (
 	"compress/gzip"
 	"encoding/json"
 	"fmt"
+	"github.com/hphphp123312/mahjong-datapreprocess/mahjong"
+	"github.com/hphphp123312/mahjong-datapreprocess/tenhou"
+	"github.com/hphphp123321/go-common"
 	_ "github.com/mattn/go-sqlite3"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
-	"mahjong/common"
-	mahjong "mahjong/mahjong_class"
-	tenhou "mahjong/tenhou_process"
 	"sync"
 	"time"
 )
@@ -69,7 +69,8 @@ func tenhouGo(bss [][]byte, dbDst *gorm.DB, goNum int) {
 		channels <- idx
 		go func(b []byte) {
 			defer wg.Done()
-			boardStates, dan := tenhou.ProcessGame(b)
+			log := tenhou.DecompressBzipBytes(b)
+			boardStates, dan := tenhou.ProcessGame(log)
 			if len(boardStates) == 0 {
 				<-channels
 				return
@@ -204,11 +205,11 @@ func main() {
 		//"src/2018.db",
 		//"src/2017.db",
 		//"src/2016.db",
-		"src/2015.db",
-		"src/2014.db",
-		"src/2013.db",
-		"src/2012.db",
-		"src/2011.db",
+		//"src/2015.db",
+		//"src/2014.db",
+		//"src/2013.db",
+		//"src/2012.db",
+		//"src/2011.db",
 		"src/2010.db",
 	} {
 		db, _ := gorm.Open(sqlite.Open(dbName), &gorm.Config{Logger: logger.Default.LogMode(logger.Silent)})
@@ -220,52 +221,53 @@ func main() {
 			datasetsNum[k] = int(a)
 		}
 		t := time.Now()
-		tenhouGo(bss, dbDst, 32)
-		//tenhouProcess(bss, dbDst)
+		//tenhouGo(bss, dbDst, 32)
+		tenhouProcess(bss, dbDst)
 		fmt.Printf(dbName+" Done! "+"used time: %v\n", time.Since(t))
 	}
 }
 
-//func tenhouProcess(bss [][]byte, dbDst *gorm.DB) {
-//	for i, bs := range bss {
-//		boardStates, dan := tenhou.ProcessGame(bs)
-//		maxDan := common.MaxNum(dan)
-//		minDan := common.MinNum(dan)
-//		var dataTypeMap = map[string][]*dataSet{
-//			"Skip":       []*dataSet{},
-//			"Discard":    []*dataSet{},
-//			"Chi":        []*dataSet{},
-//			"Pon":        []*dataSet{},
-//			"DaiMinKan":  []*dataSet{},
-//			"ShouMinKan": []*dataSet{},
-//			"AnKan":      []*dataSet{},
-//			"Riichi":     []*dataSet{},
-//		}
-//		for _, boardState := range boardStates {
-//			callType := callTypeMap[int(boardState.ValidActions[boardState.RealActionIdx].CallType)]
-//			json.Marshal(boardState)
-//			boardBytes, _ := json.Marshal(boardState)
-//			buf := &bytes.Buffer{}
-//			w := gzip.NewWriter(buf)
-//			w.Write(boardBytes)
-//			w.Close()
-//
-//			compressBytes := buf.Bytes()
-//			data := &dataSet{
-//				Data:   compressBytes,
-//				MaxDan: maxDan,
-//				MinDan: minDan,
-//			}
-//			dataTypeMap[callType] = append(dataTypeMap[callType], data)
-//		}
-//		for k, v := range dataTypeMap {
-//			if len(v) == 0 {
-//				continue
-//			}
-//			dbDst.Table(k).Select("Data", "MaxDan", "MinDan").Create(v)
-//		}
-//		if (i+1)%100 == 0 {
-//			fmt.Printf("file %v/%v done!\n", i+1, i)
-//		}
-//	}
-//}
+func tenhouProcess(bss [][]byte, dbDst *gorm.DB) {
+	for i, bs := range bss {
+		log := tenhou.DecompressBzipBytes(bs)
+		boardStates, dan := tenhou.ProcessGame(log)
+		maxDan := common.MaxNum(dan)
+		minDan := common.MinNum(dan)
+		var dataTypeMap = map[string][]*dataSet{
+			"Skip":       []*dataSet{},
+			"Discard":    []*dataSet{},
+			"Chi":        []*dataSet{},
+			"Pon":        []*dataSet{},
+			"DaiMinKan":  []*dataSet{},
+			"ShouMinKan": []*dataSet{},
+			"AnKan":      []*dataSet{},
+			"Riichi":     []*dataSet{},
+		}
+		for _, boardState := range boardStates {
+			callType := callTypeMap[int(boardState.ValidActions[boardState.RealActionIdx].CallType)]
+			json.Marshal(boardState)
+			boardBytes, _ := json.Marshal(boardState)
+			buf := &bytes.Buffer{}
+			w := gzip.NewWriter(buf)
+			w.Write(boardBytes)
+			w.Close()
+
+			compressBytes := buf.Bytes()
+			data := &dataSet{
+				Data:   compressBytes,
+				MaxDan: maxDan,
+				MinDan: minDan,
+			}
+			dataTypeMap[callType] = append(dataTypeMap[callType], data)
+		}
+		for k, v := range dataTypeMap {
+			if len(v) == 0 {
+				continue
+			}
+			dbDst.Table(k).Select("Data", "MaxDan", "MinDan").Create(v)
+		}
+		if (i+1)%100 == 0 {
+			fmt.Printf("file %v/%v done!\n", i+1, i)
+		}
+	}
+}

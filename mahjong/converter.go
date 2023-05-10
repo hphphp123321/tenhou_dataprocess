@@ -3,7 +3,7 @@ package mahjong
 import (
 	"github.com/dnovikoff/tempai-core/hand/calc"
 	"github.com/dnovikoff/tempai-core/tile"
-	"mahjong/common"
+	"github.com/hphphp123321/go-common"
 )
 
 func IntsToTiles(tiles Tiles) tile.Tiles {
@@ -14,7 +14,7 @@ func IntsToTiles(tiles Tiles) tile.Tiles {
 	return tilesT
 }
 
-func CallToMeld(call Call) calc.Meld {
+func CallToMeld(call *Call) calc.Meld {
 	var meld calc.Meld
 	switch call.CallType {
 	case Chi:

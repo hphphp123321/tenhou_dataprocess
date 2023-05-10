@@ -18,7 +18,7 @@ const (
 	ChanKan
 )
 
-type Calls []Call
+type Calls []*Call
 
 type Call struct {
 	CallType         CallType `json:"type"`
@@ -34,7 +34,7 @@ func NewCall(meldType CallType, CallTiles Tiles, CallTilesFromWho []int) *Call {
 	}
 }
 
-func CallEqual(call1 Call, call2 Call) bool {
+func CallEqual(call1 *Call, call2 *Call) bool {
 	if call1.CallType != call2.CallType {
 		return false
 	}
@@ -44,7 +44,32 @@ func CallEqual(call1 Call, call2 Call) bool {
 	return false
 }
 
-func (calls *Calls) Index(call Call) int {
+func (call *Call) Copy() *Call {
+	tilesFromWho := make([]int, len(call.CallTilesFromWho))
+	copy(tilesFromWho, call.CallTilesFromWho)
+	return &Call{
+		CallType:         call.CallType,
+		CallTiles:        call.CallTiles.Copy(),
+		CallTilesFromWho: tilesFromWho,
+	}
+}
+
+func (calls *Calls) Copy() Calls {
+	callsCopy := make(Calls, len(*calls), cap(*calls))
+	copy(callsCopy, *calls)
+	return callsCopy
+}
+
+func (calls *Calls) Append(call *Call) {
+	*calls = append(*calls, call)
+}
+
+func (calls *Calls) Remove(call *Call) {
+	idx := calls.Index(call)
+	*calls = append((*calls)[:idx], (*calls)[idx+1:]...)
+}
+
+func (calls *Calls) Index(call *Call) int {
 	for idx, c := range *calls {
 		if CallEqual(c, call) {
 			return idx

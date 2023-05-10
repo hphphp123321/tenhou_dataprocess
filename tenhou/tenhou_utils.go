@@ -1,19 +1,19 @@
 package tenhou
 
 import (
-	mahjong "mahjong/mahjong_class"
+	"github.com/hphphp123312/mahjong-datapreprocess/mahjong"
 	"strconv"
 )
 
 var getTileMap = map[string]int{"T": 0, "U": 1, "V": 2, "W": 3}
 var discardTileMap = map[string]int{"D": 0, "E": 1, "F": 2, "G": 3}
 
-func ProcessMeld(bytes int, who int) mahjong.Call {
+func ProcessMeld(bytes int, who int) *mahjong.Call {
 	var meldType mahjong.CallType
 	var tenhouMeldTiles mahjong.Tiles
 	var tilesFromWho []int
 	var tenhouCalledTile int
-	var call mahjong.Call
+	var call = new(mahjong.Call)
 	offsetFromWho := bytes & 0x3
 	fromWho := (who + offsetFromWho) % 4
 	if bytes&0x4 > 0 {
@@ -65,11 +65,11 @@ func ProcessMeld(bytes int, who int) mahjong.Call {
 		}
 	}
 	if meldType != mahjong.AnKan {
-		tenhouMeldTiles = tenhouMeldTiles.Remove(tenhouCalledTile)
-		tenhouMeldTiles = append(tenhouMeldTiles, tenhouCalledTile)
+		tenhouMeldTiles.Remove(tenhouCalledTile)
+		tenhouMeldTiles.Append(tenhouCalledTile)
 	}
 	if len(tenhouMeldTiles) == 3 {
-		tenhouMeldTiles = append(tenhouMeldTiles, -1)
+		tenhouMeldTiles.Append(-1)
 	}
 	call.CallType = meldType
 	call.CallTiles = tenhouMeldTiles

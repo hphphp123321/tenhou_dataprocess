@@ -60,18 +60,18 @@ func (tiles *MahjongTiles) DealTile() {
 	tiles.NumRemainTiles--
 }
 
-func (tiles Tiles) Remove(tile int) Tiles {
-	for i := 0; i < len(tiles); i++ {
-		if tiles[i] == tile {
-			tiles = append(tiles[:i], tiles[i+1:]...)
-			return tiles
+func (tiles *Tiles) Remove(tile int) {
+	for i := 0; i < len(*tiles); i++ {
+		if (*tiles)[i] == tile {
+			*tiles = append((*tiles)[:i], (*tiles)[i+1:]...)
+			return
 		}
 	}
 	panic("tile" + string(rune(tile)) + "not in tiles")
 }
 
-func (tiles Tiles) Append(tile int) Tiles {
-	return append(tiles, tile)
+func (tiles *Tiles) Append(tile int) {
+	*tiles = append(*tiles, tile)
 }
 
 func TilesEqual(tiles1 Tiles, tiles2 Tiles) bool {
@@ -87,24 +87,24 @@ func TilesEqual(tiles1 Tiles, tiles2 Tiles) bool {
 	return true
 }
 
-func (tiles Tiles) Copy() Tiles {
-	tilesCopy := make(Tiles, len(tiles), cap(tiles))
-	copy(tilesCopy, tiles)
+func (tiles *Tiles) Copy() Tiles {
+	tilesCopy := make(Tiles, len(*tiles), cap(*tiles))
+	copy(tilesCopy, *tiles)
 	return tilesCopy
 }
 
-func (tiles Tiles) Index(tileId int, startIdx int) int {
-	for i := startIdx; i < len(tiles); i++ {
-		if tiles[i] == tileId {
+func (tiles *Tiles) Index(tileId int, startIdx int) int {
+	for i := startIdx; i < len(*tiles); i++ {
+		if (*tiles)[i] == tileId {
 			return i
 		}
 	}
 	return -1
 }
 
-func (tiles Tiles) Count(tileId int) int {
+func (tiles *Tiles) Count(tileId int) int {
 	count := 0
-	for _, tile := range tiles {
+	for _, tile := range *tiles {
 		if tile == tileId {
 			count++
 		}

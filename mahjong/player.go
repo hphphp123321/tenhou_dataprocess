@@ -1,6 +1,9 @@
 package mahjong
 
-import "sort"
+import (
+	"github.com/hphphp123321/go-common"
+	"sort"
+)
 
 type MahjongPlayer struct {
 	Points          int
@@ -57,7 +60,7 @@ func (player *MahjongPlayer) GetShantenNum() int {
 }
 
 func (player *MahjongPlayer) GetTenhaiSlice() []int {
-	return CalculateTenhaiSlice(player.TenhaiTiles, player.Melds)
+	return GetTenhaiSlice(player.HandTiles.Copy(), player.Melds.Copy())
 }
 
 func (player *MahjongPlayer) GetRiichiTiles() Tiles {
@@ -69,7 +72,7 @@ func (player *MahjongPlayer) GetRiichiTiles() Tiles {
 	for _, tile := range player.HandTiles {
 		handTilesCopy = append(handTilesCopy, -1)
 		copy(handTilesCopy, player.HandTiles)
-		handTilesCopy = handTilesCopy.Remove(tile)
+		handTilesCopy.Remove(tile)
 		shantenNum := CalculateShantenNum(handTilesCopy, player.Melds)
 		if shantenNum == 0 {
 			rTiles = append(rTiles, tile)
@@ -86,12 +89,12 @@ func (player *MahjongPlayer) GetHandTilesClass() []int {
 	return tilesClass
 }
 
-func (player *MahjongPlayer) IsNagashiMangan() bool {
+func (player *MahjongPlayer) judgeNagashiMangan() bool {
 	if len(player.BoardTiles) != len(player.DiscardTiles) {
 		return false
 	}
 	for _, tileID := range player.DiscardTiles {
-		if !Contain(tileID, YaoKyuTiles) {
+		if !common.SliceContain([]int{0, 8, 9, 17, 18, 26, 27, 28, 29, 30, 31, 32, 33}, tileID/4) {
 			return false
 		}
 	}
@@ -110,7 +113,7 @@ func (player *MahjongPlayer) ResetForRound() {
 	player.DiscardTiles = make(Tiles, 0, 25)
 	player.TilesTsumoGiri = make([]int, 0, 25)
 	player.BoardTiles = make(Tiles, 0, 25)
-	player.Melds = make([]Call, 0, 4)
+	player.Melds = make(Calls, 0, 4)
 	player.TenhaiTiles = make(Tiles, 0, 13)
 	player.ShantenNum = 7
 	player.TenhaiSlice = []int{}
