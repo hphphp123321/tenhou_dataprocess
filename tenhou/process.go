@@ -192,11 +192,13 @@ func ProcessGame(logs string) (retBoardStates []*mahjong.BoardState, dan []int) 
 			if len(playerWinds) == 0 {
 				continue
 			}
-			for wind, p := range []*mahjong.PlayerState{&boardState.P0, &boardState.P1, &boardState.P2, &boardState.P3} {
+			for wind, p := range []*mahjong.PlayerState{boardState.P0, boardState.P1, boardState.P2, boardState.P3} {
 				p.Points = game.PosPlayer[wind].Points
-				p.Melds = game.PosPlayer[wind].Melds[:]
-				p.DiscardTiles = game.PosPlayer[wind].DiscardTiles[:]
-				p.TilesTsumoGiri = game.PosPlayer[wind].TilesTsumoGiri[:]
+				p.Melds = game.PosPlayer[wind].Melds.Copy()
+				p.DiscardTiles = game.PosPlayer[wind].DiscardTiles.Copy()
+				tsumoGiriCopy := make([]int, len(game.PosPlayer[wind].TilesTsumoGiri), cap(game.PosPlayer[wind].TilesTsumoGiri))
+				copy(tsumoGiriCopy, game.PosPlayer[wind].TilesTsumoGiri)
+				p.TilesTsumoGiri = tsumoGiriCopy
 				p.IsRiichi = game.PosPlayer[wind].IsRiichi
 				p.PointsReward = game.PosPlayer[wind].Reward
 				p.FinalReward = game.PosPlayer[wind].FinalReward

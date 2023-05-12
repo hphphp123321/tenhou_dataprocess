@@ -564,7 +564,8 @@ func (game *MahjongGame) judgeAnKan(pMain *MahjongPlayer) Calls {
 				// if a riichi player's tenhai changed after ankan, then this ankan is not valid
 				tenhaiSlice := pMain.TenhaiSlice
 				tmpHandTiles := common.RemoveIndex(pMain.HandTiles, a, b, c, d)
-				melds := Calls{posCall}
+				melds := pMain.Melds.Copy()
+				melds.Append(posCall)
 				tenhaiSliceAfterKan := GetTenhaiSlice(tmpHandTiles, melds)
 				if !common.SliceEqual(tenhaiSlice, tenhaiSliceAfterKan) {
 					continue

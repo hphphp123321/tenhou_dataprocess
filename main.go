@@ -35,14 +35,14 @@ var callTypeMap = map[int]string{
 }
 
 var datasetsSize = map[string]int{
-	"Discard":    30000000,
-	"Riichi":     15000000,
-	"Chi":        15000000,
-	"Pon":        15000000,
+	"Discard":    70000000,
+	"Riichi":     30000000,
+	"Chi":        30000000,
+	"Pon":        30000000,
 	"DaiMinKan":  3000000,
 	"ShouMinKan": 3000000,
 	"AnKan":      3000000,
-	"Skip":       20000000,
+	"Skip":       30000000,
 }
 
 var datasetsNum = map[string]int{
@@ -93,7 +93,7 @@ func tenhouGo(bss [][]byte, dbDst *gorm.DB, goNum int) {
 			}
 
 			for _, boardState := range boardStates {
-				var player mahjong.PlayerState
+				var player *mahjong.PlayerState
 				switch boardState.PlayerWind {
 				case 0:
 					player = boardState.P0
@@ -109,28 +109,31 @@ func tenhouGo(bss [][]byte, dbDst *gorm.DB, goNum int) {
 				}
 				callType := callTypeMap[int(boardState.ValidActions[boardState.RealActionIdx].CallType)]
 				lock.Lock()
-				flag := false
+				skipFlag := false
 				if callType == "Discard" {
-					if datasetsNum["Discard"]%2 == 1 && player.PointsReward <= 8000 {
-						flag = true
+					if datasetsNum["Discard"]%4 == 1 && player.PointsReward <= 8000 {
+						skipFlag = true
 					}
-					if minDan >= 17 {
-						flag = false
+					if minDan >= 18 {
+						skipFlag = false
 					}
-					if player.PointsReward == 0 && player.FinalReward < 0 {
-						flag = true
+					//if player.PointsReward == 0 && player.FinalReward < 0 {
+					//	skipFlag = true
+					//}
+					if player.PointsReward < 0 || player.FinalReward < 0 || minDan < 17 {
+						skipFlag = true
 					}
 				} else if callType == "Skip" {
 					for _, validAction := range boardState.ValidActions {
-						if (validAction.CallType == mahjong.DaiMinKan || validAction.CallType == mahjong.ShouMinKan || validAction.CallType == mahjong.AnKan) && datasetsNum["Skip"]%5 == 1 {
-							flag = true
+						if !(validAction.CallType == mahjong.DaiMinKan || validAction.CallType == mahjong.ShouMinKan || validAction.CallType == mahjong.AnKan) && datasetsNum["Skip"]%3 == 1 {
+							skipFlag = true
 						}
 					}
 				}
 				if datasetsNum[callType] >= datasetsSize[callType] {
-					flag = true
+					skipFlag = true
 				}
-				if flag {
+				if skipFlag {
 					lock.Unlock()
 					continue
 				}
@@ -260,14 +263,14 @@ func tenhouProcess(bss [][]byte, dbDst *gorm.DB) {
 			}
 			dataTypeMap[callType] = append(dataTypeMap[callType], data)
 		}
-		for k, v := range dataTypeMap {
-			if len(v) == 0 {
-				continue
-			}
-			dbDst.Table(k).Select("Data", "MaxDan", "MinDan").Create(v)
-		}
+		//for k, v := range dataTypeMap {
+		//	if len(v) == 0 {
+		//		continue
+		//	}
+		//	dbDst.Table(k).Select("Data", "MaxDan", "MinDan").Create(v)
+		//}
 		if (i+1)%100 == 0 {
-			fmt.Printf("file %v/%v done!\n", i+1, i)
+			fmt.Printf("file %v/%v done!\n", i+1, i+1)
 		}
 	}
 }

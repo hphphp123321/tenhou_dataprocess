@@ -9,13 +9,13 @@ type BoardState struct {
 	Position       int   `json:"position"`
 	HandTiles      Tiles `json:"hand_tiles"`
 	//RealAction     Call        `json:"real_action"`
-	ValidActions   Calls       `json:"valid_actions"`
-	RealActionIdx  int         `json:"action_idx"`
-	NumRemainTiles int         `json:"remain_tiles"`
-	P0             PlayerState `json:"0"`
-	P1             PlayerState `json:"1"`
-	P2             PlayerState `json:"2"`
-	P3             PlayerState `json:"3"`
+	ValidActions   Calls        `json:"valid_actions"`
+	RealActionIdx  int          `json:"action_idx"`
+	NumRemainTiles int          `json:"remain_tiles"`
+	P0             *PlayerState `json:"0"`
+	P1             *PlayerState `json:"1"`
+	P2             *PlayerState `json:"2"`
+	P3             *PlayerState `json:"3"`
 }
 
 type PlayerState struct {
@@ -26,6 +26,18 @@ type PlayerState struct {
 	IsRiichi       bool  `json:"riichi"`
 	PointsReward   int   `json:"p_reward"`
 	FinalReward    int   `json:"r_reward"`
+}
+
+func NewPlayerState() *PlayerState {
+	return &PlayerState{
+		Points:         25000,
+		Melds:          make(Calls, 0, 4),
+		DiscardTiles:   make(Tiles, 0, 25),
+		TilesTsumoGiri: make([]int, 0, 25),
+		IsRiichi:       false,
+		PointsReward:   0,
+		FinalReward:    0,
+	}
 }
 
 func NewBoardState() *BoardState {
@@ -41,10 +53,10 @@ func NewBoardState() *BoardState {
 		ValidActions:   nil,
 		RealActionIdx:  -1,
 		NumRemainTiles: -1,
-		P0:             PlayerState{},
-		P1:             PlayerState{},
-		P2:             PlayerState{},
-		P3:             PlayerState{},
+		P0:             NewPlayerState(),
+		P1:             NewPlayerState(),
+		P2:             NewPlayerState(),
+		P3:             NewPlayerState(),
 	}
 }
 
